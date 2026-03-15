@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>InvoiceIN GST — AI Ultra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="matrixCanvas"></canvas>
+<div class="grid-bg"></div>
+<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+<canvas id="cfCanvas"></canvas>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="logo">
+    <img id="bpHeaderLogo" src="" alt=""/>
+    <div class="logo-icon">IN</div>
+    <div>
+      <div class="logo-mark">InvoiceIN <span class="ai-pill">AI Ultra</span></div>
+      <div class="logo-tag">GST · India · Powered by Claude</div>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <div class="lang-switch">
+      <button class="lang-btn active" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" onclick="setLang('hi')">हि</button>
+      <button class="lang-btn" onclick="setLang('ta')">த</button>
+      <button class="lang-btn" onclick="setLang('te')">తె</button>
+    </div>
+    <button class="btn btn-ghost" onclick="saveDraft()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg><span data-t="save_draft">Save Draft</span></button>
+    <button class="btn btn-ghost" onclick="aiEmailComposer()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span data-t="ai_email">✨ AI Email</span></button>
+    <button class="btn btn-neon" onclick="generatePDF()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-t="download">Download PDF</span></button>
+    <button class="btn btn-ghost" onclick="resetForm()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg><span data-t="new_inv">New</span></button>
+    <div class="theme-toggle" onclick="toggleTheme()"><span id="themeIco">🌙</span></div>
+  </div>
+</header>
+
+<!-- ══ TABBAR ══ -->
+<div class="tabbar">
+  <div class="tab active" onclick="switchTab('editor')" id="tab-editor">✏️ <span data-t="editor">Editor</span></div>
+  <div class="tab" onclick="switchTab('preview')" id="tab-preview">👁 <span data-t="preview">Live Preview</span></div>
+  <div class="tab" onclick="switchTab('analytics')" id="tab-analytics">📊 <span data-t="analytics">Analytics</span></div>
+  <div class="tab" onclick="switchTab('crm')" id="tab-crm">👥 <span data-t="crm">Client CRM</span> <div class="tab-dot" id="crmDot" style="display:none"></div></div>
+  <div class="tab" onclick="switchTab('drafts')" id="tab-drafts">📁 <span data-t="drafts">Drafts</span> <div class="tab-dot" id="draftDot" style="display:none"></div></div>
+  <div class="tab" onclick="switchTab('bizprofile')" id="tab-bizprofile">🏢 Profile <div class="tab-dot" id="bpDot" style="display:none"></div></div>
+  <div class="tab" onclick="switchTab('history')" id="tab-history">📜 History <div class="tab-dot" id="histDot" style="display:none"></div></div>
+  <div class="tab" onclick="switchTab('products')" id="tab-products">📦 Products <div class="tab-dot" id="prodDot" style="display:none"></div></div>
+  <div class="tab" onclick="switchTab('settings')" id="tab-settings">⚙️ Settings</div>
+  <div class="autosave-label" id="autosaveLbl">Auto-saved · just now</div>
+</div>
+
+<!-- ══ EDITOR PANEL ══ -->
+<div id="panel-editor" class="panel active">
+<div class="shell">
+  <div>
+    <!-- ══ YOUR BUSINESS / BUSINESS PROFILE ══ -->
+    <div class="card" id="bpCard">
+
+      <!-- Section header with Edit button -->
+      <div class="st" style="margin-bottom:14px">
+        <div class="icon">🏢</div>
+        <span data-t="your_biz">Your Business</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <!-- Edit button — only visible when profile is saved & locked -->
+          <button class="btn-bp-edit" id="bpEditBtn" onclick="bpStartEdit()" style="display:none">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Business Profile
+          </button>
+        </div>
+      </div>
+
+      <!-- Saved profile summary bar (shown when profile is locked) -->
+      <div class="bp-saved-bar" id="bpSavedBar">
+        <img class="bp-saved-logo" id="bpSavedLogo" src="" alt="" style="display:none"/>
+        <div class="bp-saved-info">
+          <div class="bp-saved-name" id="bpSavedName">—</div>
+          <div class="bp-saved-sub" id="bpSavedSub">—</div>
+        </div>
+        <span class="bp-saved-tag">✓ Profile Saved</span>
+      </div>
+
+      <!-- Fields (locked when profile saved, unlocked when editing) -->
+      <div class="bp-fields" id="bpFields">
+        <div class="fg">
+
+          <!-- Logo upload row (spans both columns) -->
+          <div class="logo-upload-zone" onclick="document.getElementById('bpLogoInput').click()">
+            <input type="file" id="bpLogoInput" accept="image/*" onchange="bpHandleLogo(event)" onclick="event.stopPropagation()"/>
+            <img class="logo-thumb" id="bpLogoThumb" src="" alt="Logo"/>
+            <div class="logo-placeholder" id="bpLogoPlaceholder">🖼️</div>
+            <div class="logo-upload-text">
+              <div class="logo-upload-title">Upload Company Logo</div>
+              <div class="logo-upload-hint">PNG, JPG, SVG — max 2MB · Shown on PDF header</div>
+            </div>
+            <button class="logo-clear" id="bpLogoClear" onclick="bpClearLogo(event)">✕ Remove</button>
+          </div>
+
+          <div class="fg-g s2"><div class="flbl"><span data-t="biz_name">Business / Freelancer Name</span></div><input class="fin" id="sellerName" data-ph="biz_name_ph" placeholder="e.g. Ravi Kumar Design Studio" oninput="sp()"/></div>
+          <div class="fg-g s2"><div class="flbl"><span data-t="address">Address</span></div><textarea class="ftxt" id="sellerAddress" data-ph="addr_ph" placeholder="Street, City, State – PIN" oninput="sp()"></textarea></div>
+          <div class="fg-g"><div class="flbl"><span data-t="gstin">GSTIN</span></div><input class="fin" id="sellerGSTIN" placeholder="22AAAAA0000A1Z5" maxlength="15" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:.5px" oninput="sp()"/><div class="fhint">15-char GST Identification Number</div></div>
+          <div class="fg-g"><div class="flbl"><span data-t="state">State</span></div><input class="fin" id="sellerState" data-ph="state_ph" placeholder="e.g. Maharashtra" oninput="sp()"/></div>
+          <div class="fg-g"><div class="flbl"><span data-t="email">Email</span></div><input class="fin" type="email" id="sellerEmail" placeholder="you@email.com" oninput="sp()"/></div>
+          <div class="fg-g"><div class="flbl"><span data-t="phone">Phone</span></div><input class="fin" type="tel" id="sellerPhone" placeholder="+91 98765 43210" oninput="sp()"/></div>
+          <div class="fg-g"><div class="flbl"><span data-t="upi">UPI ID <span style="font-size:10px;color:var(--ne3)">(for QR on PDF)</span></span></div><input class="fin" id="sellerUPI" placeholder="yourname@upi" oninput="sp()"/></div>
+          <div class="fg-g"><div class="flbl"><span data-t="bank">Bank / IFSC (optional)</span></div><input class="fin" id="sellerBank" placeholder="Bank Name · IFSC" oninput="sp()"/></div>
+
+          <!-- Save Business Profile button -->
+          <div class="fg-g s2" style="margin-top:6px">
+            <button class="btn-bp-save" id="bpSaveBtn" onclick="bpSaveProfile()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save Business Profile
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- BILL TO -->
+    <div class="card">
+      <div class="st"><div class="icon">👤</div><span data-t="bill_to">Bill To</span></div>
+      <div class="dup-banner" id="dupBanner"><span id="dupMsg"></span></div>
+      <div class="fg">
+        <div class="fg-g s2">
+          <div class="flbl">
+            <span data-t="client_name">Client / Company Name</span>
+            <div style="display:flex;gap:5px">
+              <button class="btn-sm-ai" id="autofillBtn" onclick="aiAutoFillClient()">✨ <span data-t="ai_autofill">AI Auto-fill</span></button>
+              <button class="btn-sm-ai" onclick="saveCRM()" title="Save to CRM">💾</button>
+            </div>
+          </div>
+          <input class="fin" id="clientName" data-ph="client_ph" placeholder="e.g. Acme Technologies Pvt. Ltd." oninput="sp();checkDup()"/>
+        </div>
+        <div class="fg-g s2"><div class="flbl"><span data-t="address">Address</span></div><textarea class="ftxt" id="clientAddress" data-ph="addr_ph" placeholder="Street, City, State – PIN" oninput="sp()"></textarea></div>
+        <div class="fg-g"><div class="flbl"><span data-t="gstin_opt">GSTIN (Optional)</span></div><input class="fin" id="clientGSTIN" placeholder="22AAAAA0000A1Z5" maxlength="15" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:.5px" oninput="sp()"/></div>
+        <div class="fg-g"><div class="flbl"><span data-t="state">State</span></div><input class="fin" id="clientState" data-ph="state_ph" placeholder="e.g. Karnataka" oninput="sp()"/></div>
+      </div>
+    </div>
+
+    <!-- LINE ITEMS -->
+    <div class="card">
+      <div class="st"><div class="icon">📋</div><span data-t="line_items">Services / Line Items</span></div>
+      <div class="itw">
+        <table class="itable">
+          <thead><tr>
+            <th class="cn">#</th>
+            <th class="cd" data-t="description">Description</th>
+            <th class="cq" style="text-align:center" data-t="qty">Qty</th>
+            <th class="cr" style="text-align:right" data-t="rate">Rate (₹)</th>
+            <th class="cg" style="text-align:center" data-t="gst_pct">GST %</th>
+            <th class="ca" style="text-align:right" data-t="amount">Amount (₹)</th>
+            <th style="width:80px;text-align:center" data-t="action">Action</th>
+          </tr></thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+      </div>
+      <div class="row-acts">
+        <button class="btn-add-row" onclick="addRow()">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span data-t="add_row">Add Row</span>
+        </button>
+        <span class="rc-lbl" id="rowCount">0 items</span>
+      </div>
+      <hr class="dv"/>
+      <!-- DISCOUNT SYSTEM -->
+      <div class="flbl" style="margin-bottom:8px">💸 Discount (optional)</div>
+      <div class="disc-wrap">
+        <div class="disc-grid">
+          <div class="fg-g"><div class="flbl">Type</div>
+            <select class="fsel" id="discType" onchange="recalc()">
+              <option value="none">No Discount</option>
+              <option value="pct">Percentage (%)</option>
+              <option value="flat">Fixed Amount</option>
+            </select>
+          </div>
+          <div class="fg-g"><div class="flbl">Value</div><input class="fin" type="number" id="discVal" placeholder="0" min="0" step="0.01" oninput="recalc()"/></div>
+          <div class="fg-g"><div class="flbl">Reason</div><input class="fin" id="discReason" placeholder="e.g. Loyalty"/></div>
+        </div>
+        <div class="disc-result" id="discResult" style="display:none">
+          <div class="dr"><span class="drlbl">Subtotal</span><span class="drval" id="drSub">₹0.00</span></div>
+          <div class="dr" style="color:var(--rd)"><span class="drlbl">Discount</span><span class="drval" id="drDisc" style="color:var(--rd)">-₹0.00</span></div>
+          <div class="dr"><span class="drlbl">After Discount</span><span class="drval" id="drAfter">₹0.00</span></div>
+          <div class="dr"><span class="drlbl">GST</span><span class="drval" id="drGST">₹0.00</span></div>
+          <div class="dr dr-grand" style="border-top:1px solid var(--bd2);margin-top:4px;padding-top:6px"><span class="drlbl" style="font-weight:700;font-size:14px;color:var(--tx)">Grand Total</span><span class="drval" id="drGrand">₹0.00</span></div>
+        </div>
+      </div>
+      <hr class="dv"/>
+      <div class="fg-g">
+        <div class="flbl">
+          <span data-t="notes">Notes / Terms &amp; Conditions</span>
+          <button class="btn-sm-ai" id="payTermsBtn" onclick="aiPayTerms()">✨ <span data-t="ai_terms">AI Generate Terms</span></button>
+        </div>
+        <textarea class="ftxt" id="invoiceNote" data-ph="notes_ph" placeholder="Payment due within 15 days." oninput="sp()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="card">
+      <div class="st"><div class="icon">🔖</div><span data-t="inv_details">Invoice Details</span></div>
+      <div class="fg-g" style="margin-bottom:12px"><div class="flbl"><span data-t="inv_num">Invoice Number</span></div><input class="fin" id="invoiceNumber" style="font-family:'JetBrains Mono',monospace" oninput="sp();checkDup()"/></div>
+      <div class="fg-g" style="margin-bottom:12px"><div class="flbl"><span data-t="inv_date">Invoice Date</span></div><input class="fin" id="invoiceDate" placeholder="DD/MM/YYYY" maxlength="10" oninput="sp()"/></div>
+      <div class="fg-g"><div class="flbl"><span data-t="due_date">Due Date</span></div><input class="fin" id="dueDate" placeholder="DD/MM/YYYY" maxlength="10" oninput="sp()"/></div>
+    </div>
+
+    <div class="card sum-card">
+      <div class="st"><div class="icon">📊</div><span data-t="summary">Summary</span></div>
+      <div class="gst-box">
+        <label data-t="gst_rate_lbl">Default GST Rate (all rows)</label>
+        <select onchange="applyGlobalGST()">
+          <option value="0">0% — Exempt</option>
+          <option value="5">5%</option>
+          <option value="12">12%</option>
+          <option value="18" selected>18%</option>
+          <option value="28">28%</option>
+        </select>
+      </div>
+      <div class="sum-row"><span class="s-lbl" data-t="subtotal">Subtotal (excl. GST)</span><span class="s-val" id="sumSub">₹0.00</span></div>
+      <div class="sum-row" id="cgstRow"><span class="s-lbl">CGST</span><span class="s-val" id="sumCGST">₹0.00</span></div>
+      <div class="sum-row" id="sgstRow"><span class="s-lbl">SGST</span><span class="s-val" id="sumSGST">₹0.00</span></div>
+      <div class="sum-row" id="igstRow" style="display:none"><span class="s-lbl">IGST</span><span class="s-val" id="sumIGST">₹0.00</span></div>
+      <div class="sum-row"><span class="s-lbl" data-t="total_gst">Total GST</span><span class="s-val" id="sumGST">₹0.00</span></div>
+      <div class="sum-row grand"><span class="s-lbl" data-t="grand_total">Grand Total</span><span class="s-val" id="sumTotal">₹0.00</span></div>
+      <div class="igst-row"><input type="checkbox" id="igstToggle" onchange="recalc()"/><label for="igstToggle" data-t="igst_toggle">Use IGST (inter-state)</label></div>
+
+      <!-- Invoice health score -->
+      <div class="health-bar-wrap">
+        <div class="health-label"><span data-t="health">Invoice Health</span><span id="healthPct" style="font-family:'JetBrains Mono',monospace;color:var(--ne3)">0%</span></div>
+        <div class="health-bar"><div class="health-fill" id="healthFill" style="width:0%;background:var(--rd)"></div></div>
+        <div class="health-tips" id="healthTips"></div>
+      </div>
+
+      <button class="btn-dl" onclick="generatePDF()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span data-t="download_pdf">Download Invoice PDF</span>
+      </button>
+
+      <!-- PDF Theme Picker -->
+      <div style="margin-top:14px">
+        <div style="font-size:10.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--tx2);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          🎨 PDF Theme
+          <span id="tpNameLbl" style="margin-left:auto;font-size:10px;color:var(--ne);font-family:'JetBrains Mono',monospace">Neon Dark</span>
+        </div>
+        <div class="theme-picker">
+          <div class="tp-swatch active" data-tid="neon"     onclick="selectPDFTheme('neon')"     title="Neon Dark"><span>Neon</span></div>
+          <div class="tp-swatch"        data-tid="minimal"  onclick="selectPDFTheme('minimal')"  title="Minimal"><span>Minimal</span></div>
+          <div class="tp-swatch"        data-tid="gold"     onclick="selectPDFTheme('gold')"     title="Luxury Gold"><span>Gold</span></div>
+          <div class="tp-swatch"        data-tid="forest"   onclick="selectPDFTheme('forest')"   title="Forest Green"><span>Forest</span></div>
+          <div class="tp-swatch"        data-tid="corporate" onclick="selectPDFTheme('corporate')" title="Corporate Blue"><span>Corp</span></div>
+        </div>
+      </div>
+
+      <div class="side-acts" style="margin-top:10px">
+        <button class="btn btn-ghost" onclick="showQRModal()" style="font-size:11px">📱 QR</button>
+        <button class="btn btn-ghost" onclick="showSigModal()" style="font-size:11px">✍️ Sign</button>
+        <button class="btn btn-ghost" onclick="saveDraft()" style="font-size:11px">💾 Save</button>
+      </div>
+      <div style="display:flex;gap:7px;margin-top:8px">
+        <button class="btn-wa" onclick="shareWhatsApp()" style="flex:1;justify-content:center;font-size:11px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </button>
+        <button class="btn-eml" onclick="shareEmail()" style="flex:1;justify-content:center;font-size:11px">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Email
+        </button>
+      </div>
+      <button class="btn btn-ghost" onclick="generateShareLink()" style="width:100%;justify-content:center;margin-top:7px;font-size:11px">🔗 Copy Share Link</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ PREVIEW PANEL ══ -->
+<div id="panel-preview" class="panel">
+  <div style="max-width:1280px;margin:28px auto;padding:0 28px">
+    <div class="prev-wrap">
+      <div class="prev-top">
+        <div class="prev-dots"><span></span><span></span><span></span></div>
+        <div class="prev-url">invoice-preview · live render</div>
+        <button class="btn btn-ghost" style="padding:5px 12px;font-size:11.5px" onclick="refreshPreview()">↻ Refresh</button>
+      </div>
+      <iframe id="previewFrame" title="Invoice Preview"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ANALYTICS PANEL ══ -->
+<div id="panel-analytics" class="panel">
+  <div style="max-width:1280px;margin:28px auto;padding:0 28px">
+    <div class="card">
+      <div class="st"><div class="icon">📊</div><span data-t="analytics_title">Invoice Analytics</span></div>
+      <div id="analyticsContent"><div class="no-analytics">💡 Save some drafts to see your analytics dashboard here.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CRM PANEL ══ -->
+<div id="panel-crm" class="panel">
+  <div style="max-width:900px;margin:28px auto;padding:0 28px">
+    <div class="card">
+      <div class="st"><div class="icon">👥</div><span data-t="crm_title">Client CRM</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--tx3)" data-t="crm_hint">Click a client to load their details</span>
+      </div>
+      <div id="crmContent"><div class="crm-empty">No saved clients yet. Fill in client details and click 💾 to save.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DRAFTS PANEL ══ -->
+<div id="panel-drafts" class="panel">
+  <div style="max-width:900px;margin:28px auto;padding:0 28px">
+    <div class="card">
+      <div class="st"><div class="icon">📁</div><span data-t="drafts_title">Saved Drafts</span></div>
+      <div id="draftContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BUSINESS PROFILE PANEL (full-page view) ══ -->
+<div id="panel-bizprofile" class="panel">
+  <div style="max-width:780px;margin:32px auto;padding:0 28px 80px">
+    <div class="card">
+      <div class="st" style="margin-bottom:20px">
+        <div class="icon">🏢</div>
+        Business Profile
+        <span style="margin-left:auto;font-size:11px;color:var(--tx3)">Saved to browser · persists after refresh</span>
+      </div>
+
+      <!-- Saved profile preview (shown when a profile exists) -->
+      <div class="bp-saved-bar" id="bpPanelSavedBar" style="margin-bottom:24px">
+        <img class="bp-saved-logo" id="bpPanelSavedLogo" src="" alt="" style="display:none"/>
+        <div class="bp-saved-info">
+          <div class="bp-saved-name" id="bpPanelSavedName">—</div>
+          <div class="bp-saved-sub" id="bpPanelSavedSub">—</div>
+        </div>
+        <span class="bp-saved-tag">✓ Profile Active</span>
+      </div>
+
+      <!-- Logo upload -->
+      <div style="margin-bottom:20px">
+        <div class="flbl" style="margin-bottom:8px">Company Logo</div>
+        <div class="logo-upload-zone" style="grid-column:unset" onclick="document.getElementById('bpPanelLogoInput').click()">
+          <input type="file" id="bpPanelLogoInput" accept="image/*" onchange="bpHandleLogoPanel(event)" onclick="event.stopPropagation()"/>
+          <img class="logo-thumb" id="bpPanelLogoThumb" src="" alt="Logo"/>
+          <div class="logo-placeholder" id="bpPanelLogoPlaceholder">🖼️</div>
+          <div class="logo-upload-text">
+            <div class="logo-upload-title">Upload Company Logo</div>
+            <div class="logo-upload-hint">PNG, JPG, SVG — max 2MB · Displayed on PDF header &amp; invoice preview</div>
+          </div>
+          <button class="logo-clear" id="bpPanelLogoClear" onclick="bpClearLogoPanel(event)">✕ Remove</button>
+        </div>
+      </div>
+
+      <!-- Profile fields -->
+      <div class="fg" style="margin-bottom:20px">
+        <div class="fg-g s2"><div class="flbl">Business / Freelancer Name <span style="color:var(--rd)">*</span></div><input class="fin" id="bpPanelName" placeholder="e.g. Ravi Kumar Design Studio"/></div>
+        <div class="fg-g s2"><div class="flbl">Address</div><textarea class="ftxt" id="bpPanelAddress" placeholder="Street, City, State – PIN" style="min-height:64px"></textarea></div>
+        <div class="fg-g"><div class="flbl">GSTIN</div><input class="fin" id="bpPanelGSTIN" placeholder="22AAAAA0000A1Z5" maxlength="15" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:.5px"/><div class="fhint">15-char GST Identification Number</div></div>
+        <div class="fg-g"><div class="flbl">State</div><input class="fin" id="bpPanelState" placeholder="e.g. Maharashtra"/></div>
+        <div class="fg-g"><div class="flbl">Email</div><input class="fin" type="email" id="bpPanelEmail" placeholder="you@email.com"/></div>
+        <div class="fg-g"><div class="flbl">Phone</div><input class="fin" type="tel" id="bpPanelPhone" placeholder="+91 98765 43210"/></div>
+        <div class="fg-g"><div class="flbl">UPI ID <span style="font-size:10px;color:var(--ne3)">(for QR on PDF)</span></div><input class="fin" id="bpPanelUPI" placeholder="yourname@upi"/></div>
+        <div class="fg-g"><div class="flbl">Bank / IFSC (optional)</div><input class="fin" id="bpPanelBank" placeholder="Bank Name · IFSC"/></div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button class="btn-bp-save" onclick="bpSaveFromPanel()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Business Profile
+        </button>
+        <button class="btn-bp-edit" onclick="bpClearProfile()" style="color:var(--rd);border-color:rgba(248,113,113,.3)">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          Clear Profile
+        </button>
+        <span style="font-size:11.5px;color:var(--tx3);margin-left:4px">Saved to localStorage · auto-loads on every visit</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HISTORY PANEL ══ -->
+<div id="panel-history" class="panel">
+  <div style="max-width:1280px;margin:28px auto;padding:0 28px">
+    <div class="card">
+      <div class="st" style="margin-bottom:14px">
+        <div class="icon">📜</div>Invoice History
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn-csv" onclick="exportCSV('invoices')" style="font-size:11px;padding:6px 12px">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="hist-toolbar">
+        <input class="hist-search" id="histSearch" placeholder="🔍 Search by invoice # or client name…" oninput="renderHistory()"/>
+        <select class="ssel" id="histFilter" onchange="renderHistory()">
+          <option value="all">All Status</option>
+          <option value="paid">✅ Paid</option>
+          <option value="pending">⏳ Pending</option>
+          <option value="overdue">⚠️ Overdue</option>
+          <option value="partial">◑ Partial</option>
+        </select>
+        <select class="ssel" id="histSort" onchange="renderHistory()">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="highest">Highest Amount</option>
+          <option value="lowest">Lowest Amount</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="htable">
+          <thead><tr>
+            <th>Invoice #</th>
+            <th>Client</th>
+            <th>Date</th>
+            <th>Due Date</th>
+            <th style="text-align:right">Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+      <div id="histEmpty" class="hempty" style="display:none">
+        No invoices yet. Download or save an invoice to see it here.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PRODUCTS PANEL ══ -->
+<div id="panel-products" class="panel">
+  <div style="max-width:1280px;margin:28px auto;padding:0 28px">
+    <div class="card">
+      <div class="st" style="margin-bottom:14px">
+        <div class="icon">📦</div>Product / Service Database
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn-csv" onclick="exportCSV('products')" style="font-size:11px;padding:6px 12px">⬇ CSV</button>
+          <button class="btn btn-neon" onclick="openProdModal(null)" style="font-size:12px;padding:7px 15px">+ Add</button>
+        </div>
+      </div>
+      <!-- Quick add -->
+      <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rsm);padding:16px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--ne2);margin-bottom:12px">Quick Add Service</div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:end">
+          <div class="fg-g"><div class="flbl">Name</div><input class="fin" id="qpName" placeholder="e.g. Logo Design"/></div>
+          <div class="fg-g"><div class="flbl">Price (₹)</div><input class="fin" type="number" id="qpPrice" placeholder="5000"/></div>
+          <div class="fg-g"><div class="flbl">GST%</div>
+            <select class="fsel" id="qpGST">
+              <option value="0">0%</option><option value="5">5%</option><option value="12">12%</option>
+              <option value="18" selected>18%</option><option value="28">28%</option>
+            </select>
+          </div>
+          <button class="btn btn-neon" onclick="quickAddProduct()" style="padding:10px 16px">Add</button>
+        </div>
+        <div class="fg-g" style="margin-top:10px"><div class="flbl">Description</div><input class="fin" id="qpDesc" placeholder="Brief description…"/></div>
+      </div>
+      <div class="pgrid" id="prodGrid">
+        <div style="color:var(--tx3);font-size:13px;text-align:center;padding:30px;grid-column:1/-1">No products yet. Add your first service above.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS PANEL ══ -->
+<div id="panel-settings" class="panel">
+  <div style="max-width:900px;margin:28px auto;padding:0 28px 60px">
+    <div class="card">
+      <div class="st" style="margin-bottom:22px"><div class="icon">⚙️</div>Settings & Preferences</div>
+
+      <!-- Invoice settings -->
+      <div style="margin-bottom:24px">
+        <div class="shd">🔖 Invoice Settings</div>
+        <div class="sfg">
+          <div class="fg-g"><div class="flbl">Invoice Prefix</div><input class="fin" id="setPfx" value="INV" placeholder="INV" oninput="saveSettings()"/></div>
+          <div class="fg-g"><div class="flbl">Start Number</div><input class="fin" type="number" id="setStart" value="1" placeholder="1" oninput="saveSettings()"/></div>
+          <div class="fg-g"><div class="flbl">Default GST</div>
+            <select class="fsel" id="setGST" onchange="saveSettings()">
+              <option value="0">0%</option><option value="5">5%</option><option value="12">12%</option>
+              <option value="18" selected>18%</option><option value="28">28%</option>
+            </select>
+          </div>
+          <div class="fg-g"><div class="flbl">Default Due Days</div><input class="fin" type="number" id="setDue" value="15" placeholder="15" oninput="saveSettings()"/></div>
+        </div>
+      </div>
+
+      <!-- Currency -->
+      <div style="margin-bottom:24px">
+        <div class="shd">💱 Currency</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="curbtn active" data-curr="INR" data-sym="₹" onclick="setCurrency(this)">₹ INR</button>
+          <button class="curbtn" data-curr="USD" data-sym="$" onclick="setCurrency(this)">$ USD</button>
+          <button class="curbtn" data-curr="EUR" data-sym="€" onclick="setCurrency(this)">€ EUR</button>
+          <button class="curbtn" data-curr="GBP" data-sym="£" onclick="setCurrency(this)">£ GBP</button>
+          <button class="curbtn" data-curr="AED" data-sym="AED " onclick="setCurrency(this)">AED</button>
+          <button class="curbtn" data-curr="SGD" data-sym="S$" onclick="setCurrency(this)">S$ SGD</button>
+        </div>
+      </div>
+
+      <!-- Stamp & Signature -->
+      <div style="margin-bottom:24px">
+        <div class="shd">🖊️ Company Stamp &amp; Signature</div>
+        <div class="strow">
+          <div class="stzone" onclick="document.getElementById('stInput').click()">
+            <input type="file" id="stInput" accept="image/*" onchange="handleStamp(event)" onclick="event.stopPropagation()"/>
+            <div style="font-size:22px">🏅</div>
+            <div style="font-size:13px;font-weight:600;color:var(--tx2);margin-top:4px">Company Stamp</div>
+            <div style="font-size:10.5px;color:var(--tx3)">Click to upload PNG/JPG</div>
+            <img class="stthumb" id="stThumb" src="" alt=""/>
+          </div>
+          <div class="stzone" onclick="document.getElementById('sfInput').click()">
+            <input type="file" id="sfInput" accept="image/*" onchange="handleSigFile(event)" onclick="event.stopPropagation()"/>
+            <div style="font-size:22px">✍️</div>
+            <div style="font-size:13px;font-weight:600;color:var(--tx2);margin-top:4px">Signature Image</div>
+            <div style="font-size:10.5px;color:var(--tx3)">Click to upload PNG/JPG</div>
+            <img class="stthumb" id="sfThumb" src="" alt=""/>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="pb pb-del" onclick="clearStamp()">Clear Stamp</button>
+          <button class="pb pb-del" onclick="clearSigFile()">Clear Signature</button>
+        </div>
+      </div>
+
+      <!-- Theme toggles -->
+      <div style="margin-bottom:24px">
+        <div class="shd">🎨 Display</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="trow"><span class="tlbl">Dark Mode</span><label class="tgl"><input type="checkbox" id="tglDark" onchange="tglTheme()"/><span class="tsl"></span></label></div>
+          <div class="trow"><span class="tlbl">Matrix Rain Background</span><label class="tgl"><input type="checkbox" id="tglMatrix" onchange="tglMatrix()" checked/><span class="tsl"></span></label></div>
+          <div class="trow"><span class="tlbl">Auto-save every 5 seconds</span><label class="tgl"><input type="checkbox" id="tglAS" onchange="tglAutosave()" checked/><span class="tsl"></span></label></div>
+        </div>
+      </div>
+
+      <!-- Data export -->
+      <div style="margin-bottom:24px">
+        <div class="shd">📤 Export Data</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-csv" onclick="exportCSV('invoices')">📜 Invoices CSV</button>
+          <button class="btn-csv" onclick="exportCSV('clients')">👥 Clients CSV</button>
+          <button class="btn-csv" onclick="exportCSV('products')">📦 Products CSV</button>
+        </div>
+      </div>
+
+      <!-- Danger -->
+      <div>
+        <div class="shd" style="color:var(--rd)">⚠️ Danger Zone</div>
+        <button class="btn-rm" onclick="clearAllData()" style="padding:9px 16px;font-size:13px">🗑️ Clear All Local Data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PRODUCT MODAL ══ -->
+<div class="mov" id="prodModal">
+  <div class="mbx">
+    <div class="mtit" id="pmTitle">Add Product / Service</div>
+    <div class="msub">Products auto-suggest when typing in line items</div>
+    <input type="hidden" id="pmEditId"/>
+    <div class="fg" style="margin-bottom:12px">
+      <div class="fg-g s2"><div class="flbl">Name *</div><input class="fin" id="pmName" placeholder="e.g. Logo Design"/></div>
+      <div class="fg-g"><div class="flbl">Price (₹)</div><input class="fin" type="number" id="pmPrice" placeholder="5000"/></div>
+      <div class="fg-g"><div class="flbl">GST%</div>
+        <select class="fsel" id="pmGST">
+          <option value="0">0%</option><option value="5">5%</option><option value="12">12%</option>
+          <option value="18" selected>18%</option><option value="28">28%</option>
+        </select>
+      </div>
+      <div class="fg-g s2"><div class="flbl">Description</div><input class="fin" id="pmDesc" placeholder="Brief description…"/></div>
+    </div>
+    <div class="macts">
+      <button class="btn btn-ghost" onclick="closeProdModal()">Cancel</button>
+      <button class="btn btn-neon" onclick="saveProd()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div id="toast"><div class="ti" id="toastIco">✓</div><span id="toastMsg"></span></div>
+
+<!-- ══ STATUS BAR ══ -->
+<div class="status">
+  <span><div class="sdot"></div></span>
+  <span>Invoice: <b id="sbNum">—</b></span>
+  <span>Items: <b id="sbItems">0</b></span>
+  <span>Total: <b id="sbTotal">₹0.00</b></span>
+  <span style="margin-left:auto" id="sbTime"></span>
+</div>
+
+<!-- ══ QR MODAL ══ -->
+<div id="qrModal">
+  <div class="qr-box">
+    <div class="qr-title">📱 UPI Payment QR Code</div>
+    <div class="qr-sub" id="qrSub">Scan to pay via any UPI app</div>
+    <div id="qrOutput"></div>
+    <button class="btn btn-neon" style="width:100%;justify-content:center" onclick="closeQR()">Close</button>
+  </div>
+</div>
+
+<!-- ══ AI FAB ══ -->
+<button id="aiFab" onclick="toggleAI()">🤖<div class="fab-badge" id="fabBadge">AI</div></button>
+
+<!-- ══ SIGNATURE MODAL ══ -->
+<div id="sigModal">
+  <div class="sig-box">
+    <div class="sig-title">✍️ Digital Signature</div>
+    <div class="sig-sub">Your signature will be embedded in the PDF. Draw or type below.</div>
+
+    <!-- Mode tabs -->
+    <div class="sig-tabs">
+      <button class="sig-tab active" onclick="setSigMode('draw')">✏️ Draw</button>
+      <button class="sig-tab" onclick="setSigMode('type')">🔤 Type</button>
+    </div>
+
+    <!-- Draw pad -->
+    <div id="sigDrawWrap">
+      <canvas id="sigCanvas" width="456" height="156"></canvas>
+      <div class="sig-draw-hint">Draw your signature above with mouse or touch</div>
+    </div>
+
+    <!-- Type pad -->
+    <div class="sig-typed-wrap" id="sigTypeWrap">
+      <input class="sig-typed-in" id="sigTypeIn" type="text" placeholder="Type your name…" oninput="updateTypedSig()"/>
+      <div class="sig-fonts" id="sigFontRow">
+        <button class="sfb active" data-font="'Brush Script MT',cursive" onclick="setSigFont(this,'Brush Script MT')">Brush</button>
+        <button class="sfb" data-font="Georgia,serif" onclick="setSigFont(this,'Georgia')">Serif</button>
+        <button class="sfb" data-font="'Palatino Linotype',serif" onclick="setSigFont(this,'Palatino')">Palatino</button>
+        <button class="sfb" data-font="'Courier New',monospace" onclick="setSigFont(this,'Courier')">Mono</button>
+        <button class="sfb" data-font="Arial,sans-serif" onclick="setSigFont(this,'Sans')">Sans</button>
+      </div>
+    </div>
+
+    <!-- Preview of saved signature -->
+    <div class="sig-prev" id="sigPrevWrap">
+      <div class="sig-prev-lbl">Current Signature</div>
+      <img id="sigPrevImg" alt="Signature preview"/>
+    </div>
+
+    <!-- Actions -->
+    <div class="sig-acts">
+      <button class="btn btn-neon" style="flex:1;justify-content:center" onclick="saveSig()">✓ Save Signature</button>
+      <button class="btn btn-ghost" onclick="clearSig()">🗑 Clear</button>
+      <button class="btn btn-ghost" onclick="closeSigModal()">Cancel</button>
+    </div>
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:10px;text-align:center">Stored locally in browser · never uploaded anywhere</div>
+  </div>
+</div>
+
+<!-- ══ AI PANEL ══ -->
+<div id="aiPanel">
+  <div class="ai-hdr">
+    <div class="ai-av">🤖</div>
+    <div class="ai-hdr-info">
+      <div class="ai-nm">InvoiceIN AI</div>
+      <div class="ai-st"><span class="ai-online"></span>Online · Local AI engine</div>
+    </div>
+    <button class="ai-cls" onclick="toggleAI()">✕</button>
+  </div>
+  <div class="ai-chips">
+    <div class="ai-chip" onclick="chip('Auto-fill client details')">✨ Auto-fill</div>
+    <div class="ai-chip" onclick="chip('Generate payment terms')">📝 Terms</div>
+    <div class="ai-chip" onclick="chip('Check for duplicate invoices')">🔍 Duplicates</div>
+    <div class="ai-chip" onclick="chip('Suggest rates for my services')">💰 Rates</div>
+    <div class="ai-chip" onclick="chip('Summarize this invoice')">📊 Summarize</div>
+  </div>
+  <div class="ai-msgs" id="aiMsgs">
+    <div class="msg ai">
+      <div class="mbbl">👋 Hi! I'm your <b>InvoiceIN AI</b> — running locally, no internet needed!<br><br>New in this version:<br>• 💰 <b>AI Rate Suggester</b> — market rates for any service<br>• ✉️ <b>AI Email Composer</b> — professional invoice emails<br>• 📊 <b>Analytics Dashboard</b> — revenue charts<br>• 📱 <b>UPI QR Code</b> on every PDF<br>• 👥 <b>Client CRM</b> — save &amp; reuse clients<br>• 🌐 <b>Hindi / Tamil / Telugu</b> UI<br><br>Type <i>"connect api key"</i> to use real Claude AI.</div>
+      <div class="mtime">Now <span style="background:rgba(16,185,129,.2);color:#10b981;font-size:9px;padding:1px 6px;border-radius:10px;margin-left:5px;font-weight:700">Local AI</span></div>
+    </div>
+    <div class="typing" id="typingInd">
+      <div class="tbbl"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>
+    </div>
+  </div>
+  <div class="ai-inp-wrap">
+    <textarea class="ai-inp" id="aiInp" placeholder="Ask me anything about your invoice…" rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"
+      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px'"></textarea>
+    <button class="ai-send" id="aiSendBtn" onclick="sendAI()">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+
+  <script src="app.js"></script>
+</body>
+</html>
